@@ -1,0 +1,7 @@
+id=Clear_Rubbish
+name=AutoPurge Pro
+version=1.7.0
+versionCode=20250209
+author=Fleshy grape、克洛琳德的狗
+description=【兼容Magisk/KernelSU/APatch】自动垃圾清理模块，定时配置路径：/data/media/0/Android/Clear/清理垃圾/自定义定时设置/定时设置.conf
+support=兼容 Android 8.0 - 14

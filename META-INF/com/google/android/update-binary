@@ -1,0 +1,78 @@
+#!/bin/sh
+umask 000
+OUTFD="${2}"
+ZIPFILE="${3}"
+
+# 通用挂载点
+mount /data >/dev/null 2>&1
+
+# 环境检测函数
+detect_env() {
+    # 检测APatch
+    [ -f "/data/adb/apd" ] && {
+        echo "APatch"
+        return
+    }
+    
+    # 检测KernelSU
+    [ -f "/data/adb/ksud" ] && {
+        echo "KernelSU"
+        return
+    }
+    
+    # 默认Magisk
+    echo "Magisk"
+}
+
+# 根据环境加载工具函数
+ENV=$(detect_env)
+case "$ENV" in
+    "Magisk")
+        [ ! -f '/data/adb/magisk/util_functions.sh' ] && {
+            echo "! Magisk环境不完整"
+            exit 1
+        }
+        . '/data/adb/magisk/util_functions.sh'
+        ;;
+    "KernelSU")
+        [ ! -f '/data/adb/ksud' ] && {
+            echo "! KernelSU环境异常"
+            exit 1
+        }
+        export KSU=true
+        ;;
+    "APatch")
+        [ ! -f '/data/adb/apd' ] && {
+            echo "! APatch环境异常"
+            exit 1
+        }
+        export MAGISKTMP="$(magisk --path)/.magisk"
+        ;;
+esac
+
+# 通用安装函数
+install_module() {
+    # 创建模块目录
+    MODPATH="/data/adb/modules/$(basename "$ZIPFILE" .zip)"
+    [ "$ENV" = "KernelSU" ] && {
+        ksu_version=$(awk -F= '/KERNELSU_VERSION/{print $2}' /data/adb/ksud)
+        [ "$ksu_version" -ge 10670 ] && MODPATH="/data/adb/ksu/modules/$(basename "$ZIPFILE" .zip)"
+    }
+    
+    mkdir -p "$MODPATH"
+    
+    # 解压模块文件
+    unzip -o "$ZIPFILE" -x "META-INF/*" -d "$MODPATH" >/dev/null
+    
+    # 设置权限
+    find "$MODPATH" -type d -exec chmod 0755 {} +
+    find "$MODPATH" -type f -exec chmod 0644 {} +
+    chmod 0755 "$MODPATH/service.sh" 2>/dev/null
+}
+
+# 执行安装
+install_module
+
+# 输出完成标记
+echo "installation_complete"
+exit 0
